@@ -1,0 +1,166 @@
+<main class="kanban-page">
+  <header class="kanban-header">
+    <div>
+      <p class="eyebrow">Tasks</p>
+      <h1>Tablero de tareas</h1>
+    </div>
+    <div class="header-actions">
+      <button type="button" (click)="startCreate()">Nueva tarea</button>
+      <button type="button" class="button-muted" (click)="loadTasks()">Recargar</button>
+    </div>
+  </header>
+
+  <section class="workspace">
+    <aside class="editor-panel">
+      <div class="editor-card">
+        <h2>{{ editingTaskId() === null ? 'Crear tarea' : 'Editar tarea' }}</h2>
+
+        @if (formError()) {
+          <p class="status status--error">{{ formError() }}</p>
+        }
+
+        <label class="field">
+          <span>Titulo</span>
+          <input
+            type="text"
+            [ngModel]="formModel().title"
+            (ngModelChange)="updateForm('title', $event)"
+            maxlength="255"
+          />
+        </label>
+
+        <label class="field">
+          <span>Descripcion</span>
+          <textarea
+            rows="4"
+            [ngModel]="formModel().description"
+            (ngModelChange)="updateForm('description', $event)"
+          ></textarea>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Complejidad</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              [ngModel]="formModel().complexity"
+              (ngModelChange)="updateForm('complexity', +$event)"
+            />
+          </label>
+
+          <label class="field">
+            <span>Urgencia</span>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              [ngModel]="formModel().urgency"
+              (ngModelChange)="updateForm('urgency', +$event)"
+            />
+          </label>
+        </div>
+
+        <div class="editor-actions">
+          <button type="button" (click)="saveTask()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : (editingTaskId() === null ? 'Crear' : 'Actualizar') }}
+          </button>
+
+          @if (editingTaskId() !== null) {
+            <button type="button" class="button-muted" (click)="cancelEdit()">Cancelar</button>
+          }
+        </div>
+      </div>
+    </aside>
+
+    <section class="kanban-board">
+      @if (loading()) {
+        <p class="status">Cargando tareas...</p>
+      } @else if (error()) {
+        <p class="status status--error">{{ error() }}</p>
+      } @else {
+        @for (column of columns; track column.key) {
+          <article
+            class="kanban-column"
+            (dragover)="$event.preventDefault()"
+            (drop)="onDropColumn(column.key)"
+          >
+            <div class="column-header">
+              <h2>{{ column.title }}</h2>
+              <span>{{ columnTasks(column.key).length }}</span>
+            </div>
+
+            @if (columnTasks(column.key).length === 0) {
+              <p class="empty">Sin tareas</p>
+            } @else {
+              <div class="task-list">
+                @for (task of columnTasks(column.key); track task.id) {
+                  <div
+                    class="task-card"
+                    draggable="true"
+                    (dragstart)="onDragStart(task.id)"
+                    (dragend)="onDragEnd()"
+                  >
+                    <div class="task-card__header">
+                      <h3>{{ task.title }}</h3>
+                      <span class="task-id">#{{ task.id }}</span>
+                    </div>
+
+                    <p>{{ task.description || 'Sin descripcion' }}</p>
+
+                    <dl class="metrics">
+                      <div>
+                        <dt>Complejidad</dt>
+                        <dd>{{ task.complexity }}</dd>
+                      </div>
+                      <div>
+                        <dt>Urgencia</dt>
+                        <dd>{{ task.urgency }}</dd>
+                      </div>
+                      <div>
+                        <dt>Priority</dt>
+                        <dd>{{ task.priority_score }}</dd>
+                      </div>
+                    </dl>
+
+                    <div class="actions">
+                      <button
+                        type="button"
+                        class="button-muted"
+                        (click)="moveLeft(task.id)"
+                        [disabled]="getTaskStatus(task.id) === 'pending'"
+                      >
+                        Izquierda
+                      </button>
+                      <button
+                        type="button"
+                        class="button-muted"
+                        (click)="moveRight(task.id)"
+                        [disabled]="getTaskStatus(task.id) === 'completed'"
+                      >
+                        Derecha
+                      </button>
+                    </div>
+
+                    <div class="actions">
+                      <button type="button" (click)="startEdit(task)">Editar</button>
+                      <button
+                        type="button"
+                        class="button-danger"
+                        (click)="deleteTask(task.id)"
+                        [disabled]="deletingTaskId() === task.id"
+                      >
+                        {{ deletingTaskId() === task.id ? 'Eliminando...' : 'Eliminar' }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </article>
+        }
+      }
+    </section>
+  </section>
+</main>
